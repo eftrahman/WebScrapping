@@ -1,0 +1,55 @@
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+public class ExchangeRateScraper {
+
+    public static void main(String[] args) {
+        List<ExchangeRate> exchangeRates = new ArrayList<>();
+
+        try {
+            // Connect to the exchange rates page
+            Document doc = Jsoup.connect("https://www.x-rates.com/table/?from=USD&amount=1")
+                                .timeout(6000).get();
+            
+            // Select the table rows that contain the exchange rates
+            Elements rateRows = doc.select("table.tablesorter.ratesTable tbody tr");
+
+            // Iterate over each row
+            for (Element row : rateRows) {
+                // Extract the currency name and rate
+                Element currencyElement = row.select("td:nth-child(1)").first();
+                Element rateElement = row.select("td:nth-child(2)").first();
+                
+                String currency = currencyElement.text();
+                String rate = rateElement.text();
+
+                // Create a new ExchangeRate object and add it to the list
+                exchangeRates.add(new ExchangeRate(currency, rate));
+            }
+
+            // Write the exchange rates to a CSV file
+            writeExchangeRatesToFile(exchangeRates, "exchange_rates.csv");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void writeExchangeRatesToFile(List<ExchangeRate> exchangeRates, String filename) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
+            writer.println("Currency,Rate");
+            for (ExchangeRate exchangeRate : exchangeRates) {
+                writer.printf("\"%s\",\"%s\"%n", exchangeRate.getCurrency(), exchangeRate.getRate());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
